@@ -71,7 +71,7 @@ public class DocumentInfoServiceImpl implements DocumentInfoService {
         StorehouseItem storehouseItem = storehouseItemService.findByItemAndStorehouse(item, doc.getStorehouse());
 
         if(storehouseItem==null){
-            StorehouseItem newStorehouseItem = new StorehouseItem(item,doc.getStorehouse(),0,0,0,0);
+            StorehouseItem newStorehouseItem = new StorehouseItem(item,doc.getStorehouse(),0,0,0,0,0,0);
             storehouseItemService.save(newStorehouseItem);
         }
 
@@ -168,6 +168,10 @@ public class DocumentInfoServiceImpl implements DocumentInfoService {
         return documentInfoRepo.findByDocumentId(documentId);
     }
 
+    public List<DocumentInfo> findByDocumentIdAndItemId(Long documentId,Long itemId) {
+        return documentInfoRepo.findByDocumentIdAndItemId(documentId,itemId);
+    }
+
     public List<Report> findDocInfoForReports(Date start, Date end) {
         List<Object[]> data = documentInfoRepo.findDocumentInfoForReports(start, end);
         List<Report> result = new ArrayList<>();
@@ -179,6 +183,25 @@ public class DocumentInfoServiceImpl implements DocumentInfoService {
             info.setItem((Item) obj[2]);
             info.setAmount((Long) obj[3]);
             info.setSumm((Double) obj[4]);
+            result.add(info);
+        }
+
+        return result;
+    }
+
+    public List<Forecast> findDocInfoForForecast(Date start, Date end, Item item) {
+        List<Object[]> data = documentInfoRepo.findDocumentInfoForForecast(start, end, item);
+        List<Forecast> result = new ArrayList<>();
+
+        for (Object[] obj : data) {
+            Forecast info = new Forecast();
+
+            info.setItem((Item) obj[2]);
+            System.out.println(info.getItem().getName());
+            info.setMonth((String) obj[3]);
+            System.out.println(info.getMonth());
+            info.setAmount((Long) obj[4]);
+
             result.add(info);
         }
 
@@ -199,168 +222,6 @@ public class DocumentInfoServiceImpl implements DocumentInfoService {
         }
 
         return result;
-    }
-
-    public List<AbcXyzItemDTO> AbcXyzAnalysis(Date start, Date end){
-
-
-        List<XyzDTO> xyzResult = findDocInfoXyzAnalysis(start, end);
-        List<Report> abcResult = findDocInfoForReports(start, end);
-
-        Map<Item, Double> itemSalesMap = new HashMap<>();
-
-        for (Report report : abcResult) {
-            Item item = report.getItem();
-            Double sales = report.getSumm();
-            itemSalesMap.put(item, itemSalesMap.getOrDefault(item, 0.0) + sales);
-        }
-
-        List<Item> sortedItems = itemSalesMap.entrySet()
-                .stream()
-                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-
-        List<AbcXyzItemDTO> abcItems = new ArrayList<>();
-        double totalSales = sortedItems.stream().mapToDouble(itemSalesMap::get).sum();
-        double cumulativeSales = 0.0;
-        for (Item item : sortedItems) {
-            cumulativeSales += itemSalesMap.get(item);
-            double salesPercentage = cumulativeSales / totalSales;
-
-            String abcCategory;
-            if (salesPercentage <= 0.7) {
-                abcCategory = "A";
-            } else if (salesPercentage <= 0.9) {
-                abcCategory = "B";
-            } else {
-                abcCategory = "C";
-            }
-
-            // Определите XYZ-категорию с использованием функции determineXyzCategory
-            String xyzCategory = determineXyzCategory(item, xyzResult);
-
-            AbcXyzItemDTO abcItem = new AbcXyzItemDTO(item, abcCategory, xyzCategory, itemSalesMap.get(item));
-            abcItems.add(abcItem);
-        }
-
-        return abcItems;
-    }
-
-    private String determineXyzCategory(Item item, List<XyzDTO> xyzResult) {
-        // Найдите соответствующий объект XyzDTO для данного товара
-        XyzDTO xyzItem = xyzResult.stream()
-                .filter(dto -> dto.getItem().equals(item))
-                .findFirst()
-                .orElse(null);
-
-        if (xyzItem != null) {
-            double coefficientOfVariation = (xyzItem.getStdDeviation() / xyzItem.getMeanValue()) * 100;
-
-            if (coefficientOfVariation < 10) {
-                return "X";
-            } else if (coefficientOfVariation >= 10 && coefficientOfVariation <= 25) {
-                return "Y";
-            } else {
-                return "Z";
-            }
-        }
-
-        // Если нет информации о XYZ, вернуть "X" по умолчанию
-        return "X";
-    }
-
-    public List<Calculation> calculate(List<Item> items) {
-
-        List<Calculation> result = new ArrayList<>();
-        List<Document> documentList = documentService.findAll();
-
-        for (Item item : items) {
-            Map<Storehouse, Map<Date, Double>> demandPerStorehouseAndDay = new HashMap<>();
-            int maxDeliveryTime = 0;
-            int minDeliveryTime = Integer.MAX_VALUE;
-
-            for (Document doc : documentList) {
-                if (doc.getStatus().equals("проведен") && doc.getDate() != null) {
-                    Date docDate = doc.getDate();
-                    Storehouse storehouse = doc.getStorehouse();
-
-                    if (doc.getType().equals("расход")) {
-                        List<DocumentInfo> documentInfoList = documentInfoRepo.findByDocumentIdAndItemId(doc.getId(), item.getId());
-                        double docInfoAmount = 0;
-
-                        for (DocumentInfo docInfo : documentInfoList) {
-                            docInfoAmount += docInfo.getAmount();
-                        }
-
-                        demandPerStorehouseAndDay
-                                .computeIfAbsent(storehouse, k -> new HashMap<>())
-                                .put(docDate, demandPerStorehouseAndDay
-                                        .getOrDefault(storehouse, new HashMap<>())
-                                        .getOrDefault(docDate, 0.0) + docInfoAmount);
-                    }
-
-                    if (doc.getType().equals("приход")) {
-                        if (doc.getDelivery() > maxDeliveryTime) {
-                            maxDeliveryTime = doc.getDelivery();
-                        }
-
-                        if (doc.getDelivery() < minDeliveryTime) {
-                            minDeliveryTime = doc.getDelivery();
-                        }
-                    }
-                }
-            }
-
-            for (Map.Entry<Storehouse, Map<Date, Double>> entry : demandPerStorehouseAndDay.entrySet()) {
-                Storehouse storehouse = entry.getKey();
-                Map<Date, Double> demandPerDay = entry.getValue();
-                double maxDemandPerDay = demandPerDay.values().stream().max(Comparator.naturalOrder()).orElse(0.0);
-
-                // Расчет точки заказа по формуле RL = S_max × T_max
-                int reorderLevel = (int) (maxDemandPerDay * maxDeliveryTime);
-
-                double minDemandPerDay = demandPerDay.values().stream().min(Comparator.naturalOrder()).orElse(0.0);
-
-                // Расчет минимального уровня запасов (I_min) по формуле I_min = RL - (S_min × T_min)
-                int minLevel = (int) (reorderLevel - minDemandPerDay * minDeliveryTime);
-
-                int maxLevel = 0;
-
-                Calculation calculation = new Calculation();
-                calculation.setItem(item);
-                calculation.setStorehouse(storehouse);
-                calculation.setReorderLevel(reorderLevel);
-                calculation.setMinValue(minLevel);
-                calculation.setMaxValue(maxLevel);
-
-                result.add(calculation);
-            }
-        }
-
-        return result;
-    }
-
-    public void setCalculations(CalculationRequest request) {
-
-        List<Long> selectedItems = request.getItems();
-
-        List<Item> items = new ArrayList<>();
-        for(Long id:selectedItems){
-            items.add(itemService.findById(id));
-        }
-
-        List<Calculation> calculations = calculate(items);
-
-        for(Calculation calculation:calculations){
-
-            StorehouseItem storehouseItem = storehouseItemService.findByItemAndStorehouse(calculation.getItem(),calculation.getStorehouse());
-            storehouseItem.setMin_amount(calculation.getMinValue());
-            storehouseItem.setMax_amount(calculation.getMaxValue());
-            storehouseItem.setReorder_level(calculation.getReorderLevel());
-            storehouseItemService.update(storehouseItem,storehouseItem.getId());
-        }
-
     }
 
 

@@ -2,6 +2,7 @@ package com.StockAppBackend.fullstackbackend.repo;
 
 
 import com.StockAppBackend.fullstackbackend.entity.DocumentInfo;
+import com.StockAppBackend.fullstackbackend.entity.Item;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -19,6 +20,10 @@ public interface DocumentInfoRepo extends JpaRepository<DocumentInfo, Long> {
             "AND di.document.date BETWEEN :startDate AND :endDate GROUP BY di.item.id")
     List<Object[]> findDocumentInfoForReports(Date startDate, Date endDate);
 
+    @Query("SELECT di.id, di.document, di.item,DATE_FORMAT(di.document.date, '%m') AS month, SUM(di.amount) AS amount, SUM(di.coefficient_price * di.amount) " +
+            "AS summ FROM DocumentInfo di WHERE di.document.type = 'расход' and di.document.status='проведен' and di.item = :item " +
+            "AND di.document.date BETWEEN :startDate AND :endDate GROUP BY di.item.id, month ORDER BY month")
+    List<Object[]> findDocumentInfoForForecast(Date startDate, Date endDate, Item item);
 
     @Query("SELECT di.item, AVG(di.amount) as mean_value, STDDEV(di.amount) as std_deviation " +
             "FROM DocumentInfo di WHERE di.document.type = 'расход' and di.document.status='проведен' " +

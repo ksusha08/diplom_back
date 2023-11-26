@@ -2,12 +2,12 @@ package com.StockAppBackend.fullstackbackend.controller;
 
 import com.StockAppBackend.fullstackbackend.dto.*;
 import com.StockAppBackend.fullstackbackend.entity.Item;
-import com.StockAppBackend.fullstackbackend.service.map.DocumentInfoServiceImpl;
-import com.StockAppBackend.fullstackbackend.service.map.ItemServiceImpl;
-import com.StockAppBackend.fullstackbackend.service.map.ReportsService;
+import com.StockAppBackend.fullstackbackend.entity.TextRecommendation;
+import com.StockAppBackend.fullstackbackend.service.map.*;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,10 +22,17 @@ public class ReportsController {
 
     private final ItemServiceImpl itemService;
 
-    public ReportsController(ReportsService reportsService, DocumentInfoServiceImpl documentInfoService, ItemServiceImpl itemService) {
+    private final AnalysisController analysisController;
+
+    private final RecommendationsService recommendationsService;
+
+
+    public ReportsController(ReportsService reportsService, DocumentInfoServiceImpl documentInfoService, ItemServiceImpl itemService, AnalysisController analysisController, RecommendationsService recommendationsService) {
         this.reportsService = reportsService;
         this.documentInfoService = documentInfoService;
         this.itemService = itemService;
+        this.analysisController = analysisController;
+        this.recommendationsService = recommendationsService;
     }
 
 
@@ -40,7 +47,7 @@ public class ReportsController {
     List<AbcXyzItemDTO> abcAnalysis(@PathVariable Date start,
                                     @PathVariable Date end){
 
-        return documentInfoService.AbcXyzAnalysis(start,end);
+        return analysisController.AbcXyzAnalysis(start,end);
     }
 
     @GetMapping("/balance_report/{start}/{end}")
@@ -59,12 +66,38 @@ public class ReportsController {
             items.add(itemService.findById(id));
         }
 
-        return documentInfoService.calculate(items);
+        return analysisController.calculate(items);
     }
 
     @PostMapping("/setcalculations")
     public void setCalculations(@RequestBody CalculationRequest request) {
-        documentInfoService.setCalculations(request);
+        analysisController.setCalculations(request);
     }
+
+
+    @PostMapping("/recommendations")
+    public List<ForecastRequest> recommendations(@RequestBody CalculationRequest request) throws ParseException {
+
+        List<Long> selectedItems = request.getItems();
+        List<Item> items = new ArrayList<>();
+        for(Long id:selectedItems){
+            items.add(itemService.findById(id));
+        }
+
+        return recommendationsService.doForecastCalculations(items);
+    }
+
+    @PostMapping("/textrecommendations")
+    public List<TextRecommendation> textRecommendations(@RequestBody CalculationRequest request) throws ParseException {
+        List<Long> selectedItems = request.getItems();
+        List<Item> items = new ArrayList<>();
+        for (Long id : selectedItems) {
+            items.add(itemService.findById(id));
+        }
+
+        List<ForecastRequest> forecastRequests = recommendationsService.doForecastCalculations(items);
+        return recommendationsService.generateTextRecommendations(forecastRequests);
+    }
+
 
 }

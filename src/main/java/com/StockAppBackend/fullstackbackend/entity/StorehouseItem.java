@@ -31,15 +31,24 @@ public class StorehouseItem {
     @Column(name = "reorder_level")
     private int reorder_level;
 
+    @Column(name = "order_cost")
+    private double order_cost;
+
+    @Column(name = "maintenance_cost")
+    private double maintenance_cost;
+
+
     public StorehouseItem(){}
 
-    public StorehouseItem( Item item, Storehouse storehouse, int amount, int min_amount, int max_amount, int reorder_level) {
+    public StorehouseItem( Item item, Storehouse storehouse, int amount, int min_amount, int max_amount, int reorder_level, double order_cost,double maintenance_cost ) {
         this.item = item;
         this.storehouse = storehouse;
         this.amount = amount;
         this.min_amount = min_amount;
         this.max_amount = max_amount;
         this.reorder_level = reorder_level;
+        this.order_cost = order_cost;
+        this.maintenance_cost = maintenance_cost;
     }
 
     public Long getId() {
@@ -96,5 +105,21 @@ public class StorehouseItem {
 
     public void setReorder_level(int reorder_level) {
         this.reorder_level = reorder_level;
+    }
+
+    public double getOrder_cost() {
+        return order_cost;
+    }
+
+    public void setOrder_cost(double order_cost) {
+        this.order_cost = order_cost;
+    }
+
+    public double getMaintenance_cost() {
+        return maintenance_cost;
+    }
+
+    public void setMaintenance_cost(double maintenance_cost) {
+        this.maintenance_cost = maintenance_cost;
     }
 }

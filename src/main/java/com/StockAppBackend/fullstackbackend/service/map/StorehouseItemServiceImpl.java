@@ -54,6 +54,8 @@ public class StorehouseItemServiceImpl implements StorehouseItemService {
             storehouseItem.setReorder_level(newStorehouseItem.getReorder_level());
             storehouseItem.setMin_amount(newStorehouseItem.getMin_amount());
             storehouseItem.setMax_amount(newStorehouseItem.getMax_amount());
+            storehouseItem.setOrder_cost(newStorehouseItem.getOrder_cost());
+            storehouseItem.setMaintenance_cost(newStorehouseItem.getMaintenance_cost());
 
 
             return storehouseItemRepo.save(storehouseItem);

@@ -43,6 +43,9 @@ public class Item {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "item")
     private Set<Income> income = new HashSet<>();
 
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "item")
+    private Set<Movement> movement = new HashSet<>();
+
 
     public Item(){
     }

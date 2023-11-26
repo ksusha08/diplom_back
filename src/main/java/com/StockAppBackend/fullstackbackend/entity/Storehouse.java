@@ -27,6 +27,12 @@ public class Storehouse {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "storehouse")
     private Set<Document> document = new HashSet<>();
 
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "storehouseFrom")
+    private Set<Movement> movementFrom = new HashSet<>();
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "storehouseTo")
+    private Set<Movement> movementTo = new HashSet<>();
+
     public Storehouse() {
     }
 
