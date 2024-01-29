@@ -72,7 +72,15 @@ public class StorehouseItemController {
     @DeleteMapping("/storehouseitem/{id}")
     String deleteStorehouseItem(@PathVariable Long id){
         storehouseItemService.deleteById(id);
-        return  "Supplier with id "+id+" has been deleted success";
+        return  "StorehouseItem with id "+id+" has been deleted success";
+
+    }
+
+    @GetMapping("/move-storehouseitem/{idstorehouse1}/{iditem}/{idstorehouse2}/{amount}")
+    String moveStorehouseItem(@PathVariable Long idstorehouse1,@PathVariable Long iditem, @PathVariable Long idstorehouse2, @PathVariable int amount){
+
+        storehouseItemService.moveItem(idstorehouse1,iditem,idstorehouse2,amount);
+        return  "StorehouseItem with id "+iditem+" has been moved success";
 
     }
 }

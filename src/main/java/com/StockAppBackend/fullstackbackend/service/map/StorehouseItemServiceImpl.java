@@ -18,6 +18,14 @@ public class StorehouseItemServiceImpl implements StorehouseItemService {
     @Autowired
     private StorehouseItemRepo storehouseItemRepo;
 
+    @Autowired
+    private ItemServiceImpl itemService;
+
+    @Autowired
+    private StorehouseServiceImpl storehouseService;
+
+
+
     @Override
     public List<StorehouseItem> findAll() {
         List<StorehouseItem> storehousesItems = storehouseItemRepo.findAll();
@@ -71,4 +79,30 @@ public class StorehouseItemServiceImpl implements StorehouseItemService {
         List<StorehouseItem> storehouseItems = storehouseItemRepo.findByItemId(id);
         return storehouseItems;
     }
+
+    public void moveItem(Long idstorehouse1,Long iditem,Long idstorehouse2, int amount){
+
+        Item item = itemService.findById(iditem);
+
+        StorehouseItem storehouseItem1 = findByItemAndStorehouse(item,storehouseService.findById(idstorehouse1));
+
+        StorehouseItem storehouseItem2 = findByItemAndStorehouse(item,storehouseService.findById(idstorehouse2));
+
+        int newAmount1 = storehouseItem1.getAmount() - amount;
+        storehouseItem1.setAmount(newAmount1);
+        update(storehouseItem1,idstorehouse1);
+
+        if(storehouseItem2==null){
+            StorehouseItem newStorehouseItem = new StorehouseItem(item,storehouseService.findById(idstorehouse2),amount,0,0,0,0,0);
+            save(newStorehouseItem);
+        }
+        else{
+            int newAmount2 = storehouseItem2.getAmount() +amount;
+            storehouseItem2.setAmount(newAmount2);
+            update(storehouseItem2,idstorehouse2);
+        }
+
+
+    }
+
 }

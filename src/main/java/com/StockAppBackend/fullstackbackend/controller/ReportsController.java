@@ -5,8 +5,16 @@ import com.StockAppBackend.fullstackbackend.entity.Item;
 import com.StockAppBackend.fullstackbackend.entity.TextRecommendation;
 import com.StockAppBackend.fullstackbackend.service.map.*;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -75,8 +83,9 @@ public class ReportsController {
     }
 
 
+
     @PostMapping("/recommendations")
-    public List<ForecastRequest> recommendations(@RequestBody CalculationRequest request) throws ParseException {
+    public ResponseEntity<byte[]> recommendations(@RequestBody CalculationRequest request) throws ParseException, IOException {
 
         List<Long> selectedItems = request.getItems();
         List<Item> items = new ArrayList<>();
@@ -84,20 +93,13 @@ public class ReportsController {
             items.add(itemService.findById(id));
         }
 
-        return recommendationsService.doForecastCalculations(items);
+
+        byte[] documentContent =  recommendationsService.doForecastCalculations(items);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+
+        return new ResponseEntity<>(documentContent, headers, HttpStatus.OK);
     }
-
-    @PostMapping("/textrecommendations")
-    public List<TextRecommendation> textRecommendations(@RequestBody CalculationRequest request) throws ParseException {
-        List<Long> selectedItems = request.getItems();
-        List<Item> items = new ArrayList<>();
-        for (Long id : selectedItems) {
-            items.add(itemService.findById(id));
-        }
-
-        List<ForecastRequest> forecastRequests = recommendationsService.doForecastCalculations(items);
-        return recommendationsService.generateTextRecommendations(forecastRequests);
-    }
-
 
 }
